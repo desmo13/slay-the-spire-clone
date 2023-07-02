@@ -8,12 +8,19 @@ function App() {
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [isEnemyDefeated, setIsEnemyDefeated] = useState(false);
   const [isInMap, setIsInMap] = useState(false);
+  const [challengeOptions, setChallengeOptions] = useState([
+    { id: 1, type: 'event', name: 'Event Challenge', message: 'You gained +5 attack!', title: 'Event' },
+    { id: 2, type: 'enemy', name: 'Enemy Challenge', enemyAttackDamage: 10, enemyHealth: 50, title: 'Enemy Encounter' },
+    { id: 3, type: 'event', name: 'Gold Challenge', message: 'You found 20 gold!', gold: 20, healthPenalty: 5, title: 'Gold Event' },
+  ]);
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [challengeMessage, setChallengeMessage] = useState('');
 
   const cards = [
     { name: 'Strike', cost: 1, damage: 10 },
-    { name: 'Defend', cost: 1, heal: 5 },
+    { name: 'Defend', cost: 1, defense: 5 },
     { name: 'Fireball', cost: 2, damage: 20 },
-    { name: 'Heal', cost: 2, heal: 15 }
+    { name: 'Heal', cost: 2, heal: 15 },
   ];
 
   const handleCardPlay = (card) => {
@@ -21,35 +28,39 @@ function App() {
       if (card.damage && playerEnergy >= card.cost) {
         setEnemyHealth(enemyHealth - card.damage);
         setPlayerEnergy(playerEnergy - card.cost);
-        if (enemyHealth < 1) {
+        if (enemyHealth - card.damage <= 0) {
           handleEnemyDefeat();
         }
       }
-      if (card.heal  && playerEnergy >= card.cost) {
-        setPlayerHealth(playerHealth + card.heal );
-        setPlayerEnergy(playerEnergy - card.cost);
+      if (card.heal && playerEnergy >= card.cost) {
+        setPlayerHealth(playerHealth + card.heal);
+        if (card.name === 'Defend') {
+          setPlayerHealth(playerHealth - challengeOptions[selectedChallenge - 1]?.healthPenalty);
+        }
       }
     }
     setIsPlayerTurn(false);
   };
 
-  const handleEnemyTurn = async () => {
-    // Lógica del turno del enemigo
+  const handleEnemyTurn = () => {
     const enemyAttackDamage = 15;
-    setPlayerHealth(playerHealth - enemyAttackDamage);
-    await delay(1500); // Esperar 4 segundos antes de pasar al turno del jugador
+    setPlayerHealth((prevPlayerHealth) => prevPlayerHealth - enemyAttackDamage);
     setIsPlayerTurn(true);
-    setPlayerEnergy(4);
   };
 
   useEffect(() => {
     if (!isPlayerTurn) {
-      handleEnemyTurn();
+      setTimeout(() => {
+        handleEnemyTurn();
+        setPlayerEnergy(4);
+      }, 4000); // Espera de 4 segundos antes de pasar al turno del jugador
     }
   }, [isPlayerTurn]);
 
   const handleEnemyDefeat = () => {
     setIsEnemyDefeated(true);
+    setPlayerHealth(100); // Reiniciar la vida del jugador
+    setEnemyHealth(100); // Reiniciar la vida del enemigo
   };
 
   const handleContinue = () => {
@@ -57,8 +68,38 @@ function App() {
     setIsInMap(true);
   };
 
-  const delay = (ms) => {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  const handleChallengeSelection = (challenge) => {
+    setSelectedChallenge(challenge);
+  };
+
+  useEffect(() => {
+    if (selectedChallenge !== null) {
+      const { type } = selectedChallenge;
+      switch (type) {
+        case 'event':
+          handleEventChallenge(selectedChallenge);
+          break;
+        case 'enemy':
+          handleEnemyChallenge(selectedChallenge);
+          break;
+        default:
+          break;
+      }
+      setSelectedChallenge(null);
+      setIsInMap(false);
+    }
+  }, [selectedChallenge]);
+
+  const handleEventChallenge = (challenge) => {
+    const { message, title } = challenge;
+    setChallengeMessage(`${title}: ${message}`);
+  };
+
+  const handleEnemyChallenge = (challenge) => {
+    const { enemyAttackDamage, enemyHealth, title } = challenge;
+    setEnemyHealth(enemyHealth); // Restaurar la vida del enemigo
+    setPlayerHealth(100); // Reiniciar la vida del jugador
+    setChallengeMessage(`${title}: Enemy Attack Damage: ${enemyAttackDamage}, Enemy Health: ${enemyHealth}`);
   };
 
   return (
@@ -74,11 +115,7 @@ function App() {
           </div>
           <div className="cards">
             {cards.map((card, index) => (
-              <button
-                key={index}
-                onClick={() => handleCardPlay(card)}
-                disabled={!isPlayerTurn || playerEnergy < card.cost}
-              >
+              <button key={index} onClick={() => handleCardPlay(card)} disabled={!isPlayerTurn}>
                 {card.name} ({card.cost} Energy)
               </button>
             ))}
@@ -95,7 +132,16 @@ function App() {
         <div>
           <h2>Map</h2>
           <p>Select Next Challenge:</p>
-          {/* Agrega opciones de desafío en el mapa */}
+          {challengeOptions.map((challenge) => (
+            <button key={challenge.id} onClick={() => handleChallengeSelection(challenge)}>
+              {challenge.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {challengeMessage && (
+        <div className="challenge-message">
+          <p>{challengeMessage}</p>
         </div>
       )}
     </div>

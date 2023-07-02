@@ -1,6 +1,10 @@
 .App {
   text-align: center;
-  margin-top: 50px;
+  margin-top: 40px;
+}
+
+h1 {
+  margin-bottom: 20px;
 }
 
 .status {
@@ -10,9 +14,13 @@
 .cards {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  gap: 10px;
 }
 
-.cards button {
-  margin: 5px;
+button {
+  padding: 10px 20px;
+}
+
+.challenge-message {
+  margin-top: 20px;
 }
