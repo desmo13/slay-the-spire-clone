@@ -7,7 +7,7 @@ function App() {
   const [enemyHealth, setEnemyHealth] = useState(100);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [isEnemyDefeated, setIsEnemyDefeated] = useState(false);
-  const [isInMap, setIsInMap] = useState(false);
+  const [isInMap, setIsInMap] = useState(true);
   const [challengeOptions, setChallengeOptions] = useState([
     { id: 1, type: 'event', name: 'Event Challenge', message: 'You gained +5 attack!', title: 'Event' },
     { id: 2, type: 'enemy', name: 'Enemy Challenge', enemyAttackDamage: 10, enemyHealth: 50, title: 'Enemy Encounter' },
@@ -15,6 +15,7 @@ function App() {
   ]);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [challengeMessage, setChallengeMessage] = useState('');
+  const [challengeTitle, setChallengeTitle] = useState('');
 
   const cards = [
     { name: 'Strike', cost: 1, damage: 10 },
@@ -66,46 +67,50 @@ function App() {
   const handleContinue = () => {
     setIsEnemyDefeated(false);
     setIsInMap(true);
+    setSelectedChallenge(null);
   };
 
   const handleChallengeSelection = (challenge) => {
-    setSelectedChallenge(challenge);
+    setSelectedChallenge(challenge.id);
+    if (challenge.type === 'event') {
+      setChallengeTitle(challenge.title);
+      setChallengeMessage(challenge.message);
+      setIsInMap(false);
+    } else if (challenge.type === 'enemy') {
+      handleEnemyChallenge(challenge);
+    }
   };
 
-  useEffect(() => {
-    if (selectedChallenge !== null) {
-      const { type } = selectedChallenge;
-      switch (type) {
-        case 'event':
-          handleEventChallenge(selectedChallenge);
-          break;
-        case 'enemy':
-          handleEnemyChallenge(selectedChallenge);
-          break;
-        default:
-          break;
-      }
-      setSelectedChallenge(null);
-      setIsInMap(false);
-    }
-  }, [selectedChallenge]);
-
   const handleEventChallenge = (challenge) => {
-    const { message, title } = challenge;
-    setChallengeMessage(`${title}: ${message}`);
+    setChallengeTitle(challenge.title);
+    setChallengeMessage(challenge.message);
   };
 
   const handleEnemyChallenge = (challenge) => {
-    const { enemyAttackDamage, enemyHealth, title } = challenge;
-    setEnemyHealth(enemyHealth); // Restaurar la vida del enemigo
-    setPlayerHealth(100); // Reiniciar la vida del jugador
-    setChallengeMessage(`${title}: Enemy Attack Damage: ${enemyAttackDamage}, Enemy Health: ${enemyHealth}`);
+    setEnemyHealth(challenge.enemyHealth);
+    setPlayerHealth(100);
+    setChallengeTitle(challenge.title);
+    setChallengeMessage(`Enemy Attack Damage: ${challenge.enemyAttackDamage}\nEnemy Health: ${challenge.enemyHealth}`);
+    setIsInMap(false);
+    setIsEnemyDefeated(false);
+    setSelectedChallenge(false);
+  };
+
+  const handleGoldChallenge = (challenge) => {
+    setChallengeTitle(challenge.title);
+    setChallengeMessage(`You found ${challenge.gold} gold!\nHealth Penalty: ${challenge.healthPenalty}`);
+    setIsInMap(false);
+  };
+
+  const handleChallengeComplete = () => {
+    setSelectedChallenge(null);
+    setIsInMap(true);
   };
 
   return (
     <div className="App">
       <h1>Slay the Spire Clone</h1>
-      {!isInMap && !isEnemyDefeated && (
+      {!isInMap && !isEnemyDefeated && !selectedChallenge && (
         <div>
           <div className="status">
             <p>Player Health: {playerHealth}</p>
@@ -139,9 +144,11 @@ function App() {
           ))}
         </div>
       )}
-      {challengeMessage && (
-        <div className="challenge-message">
+      {selectedChallenge && (
+        <div>
+          <h2>{challengeTitle}</h2>
           <p>{challengeMessage}</p>
+          <button onClick={handleChallengeComplete}>Go to Map</button>
         </div>
       )}
     </div>
